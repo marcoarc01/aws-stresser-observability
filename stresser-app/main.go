@@ -24,7 +24,10 @@ func main() {
 	mux.HandleFunc("POST /api/stress", handlers.StressHandler(engine))
 	mux.Handle("GET /metrics", promhttp.Handler())
 
-	// UI estática
+	// Arquivos estaticos (CSS, JS)
+	mux.Handle("GET /static/", handlers.StaticHandler())
+
+	// UI estatica
 	mux.HandleFunc("GET /", handlers.UIHandler)
 
 	// Porta do servidor
@@ -35,7 +38,7 @@ func main() {
 
 	addr := fmt.Sprintf(":%s", port)
 	log.Printf("Stresser App rodando em http://localhost%s", addr)
-	log.Printf("Métricas em http://localhost%s/metrics", addr)
+	log.Printf("Metricas em http://localhost%s/metrics", addr)
 
 	// Inicia o servidor HTTP
 	if err := http.ListenAndServe(addr, mux); err != nil {

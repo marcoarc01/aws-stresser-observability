@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/marcoarc01/aws-stresser-observability/stresser-app/metrics"
 	"github.com/marcoarc01/aws-stresser-observability/stresser-app/stress"
 )
 
@@ -28,12 +29,14 @@ func StressHandler(engine *stress.Engine) http.HandlerFunc {
 
 		// Decodifica o JSON do body
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			metrics.HTTPRequestsTotal.WithLabelValues("POST", "/api/stress", "400").Inc()
 			http.Error(w, `{"error": "JSON inválido"}`, http.StatusBadRequest)
 			return
 		}
 
 		// Valida o range 0-100
 		if req.Level < 0 || req.Level > 100 {
+			metrics.HTTPRequestsTotal.WithLabelValues("POST", "/api/stress", "400").Inc()
 			http.Error(w, `{"error": "level deve ser entre 0 e 100"}`, http.StatusBadRequest)
 			return
 		}
@@ -41,7 +44,9 @@ func StressHandler(engine *stress.Engine) http.HandlerFunc {
 		// Aplica o novo nível de stress
 		engine.SetLevel(req.Level)
 
-		log.Printf(" Stress alterado para %d%% (%d workers)", req.Level, engine.GetWorkers())
+		metrics.HTTPRequestsTotal.WithLabelValues("POST", "/api/stress", "200").Inc()
+
+		log.Printf("Stress alterado para %d%% (%d workers)", req.Level, engine.GetWorkers())
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)

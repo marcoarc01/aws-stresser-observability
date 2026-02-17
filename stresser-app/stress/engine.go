@@ -4,6 +4,8 @@ import (
 	"log"
 	"runtime"
 	"sync"
+
+	"github.com/marcoarc01/aws-stresser-observability/stresser-app/metrics"
 )
 
 // Engine controla o nível de stress da aplicação
@@ -63,7 +65,13 @@ func (e *Engine) SetLevel(level int) {
 	}
 
 	e.workers = desiredWorkers
-	log.Printf("Engine: level=%d%%, workers=%d/%d CPUs", level, desiredWorkers, maxCPUs)
+
+	// MÉTRICAS — atualiza Prometheus
+	metrics.CPUStressLevel.Set(float64(level))
+	metrics.CPUWorkersActive.Set(float64(desiredWorkers))
+	metrics.StressChangesTotal.Inc()
+
+	log.Printf("🔧 Engine: level=%d%%, workers=%d/%d CPUs", level, desiredWorkers, maxCPUs)
 }
 
 // cpuWorker é uma goroutine que consome CPU até receber sinal de parada
@@ -71,10 +79,8 @@ func cpuWorker(stop chan struct{}) {
 	for {
 		select {
 		case <-stop:
-			// Recebeu sinal de parada, encerra
 			return
 		default:
-			// Faz cálculo inútil para consumir CPU
 			_ = 1 + 1
 		}
 	}
