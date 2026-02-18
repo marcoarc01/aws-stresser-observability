@@ -13,6 +13,19 @@ services:
           cpus: "2.0"
           memory: "512M"
 
+  mailhog:
+    image: mailhog/mailhog
+    container_name: mailhog
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+    environment:
+      - MH_STORAGE=memory
+      - MH_SMTP_BIND_ADDR=0.0.0.0:1025
+      - MH_UI_BIND_ADDR=0.0.0.0:8025
+      - MH_API_BIND_ADDR=0.0.0.0:8025
+    restart: unless-stopped
+
   prometheus:
     image: prom/prometheus
     container_name: prometheus
