@@ -1,0 +1,7 @@
+global:
+  scrape_interval: 1m
+
+scrape_configs:
+  - job_name: "metrics-stresser-app"
+    static_configs:
+      - targets: ["stresser-app:8080"]

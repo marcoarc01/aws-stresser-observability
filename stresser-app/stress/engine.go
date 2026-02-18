@@ -67,11 +67,12 @@ func (e *Engine) SetLevel(level int) {
 	e.workers = desiredWorkers
 
 	// MÉTRICAS — atualiza Prometheus
-	metrics.CPUStressLevel.Set(float64(level))
-	metrics.CPUWorkersActive.Set(float64(desiredWorkers))
+	metrics.StressLevel.Set(float64(level))
+	metrics.StressCPUWorkers.Set(float64(desiredWorkers))
 	metrics.StressChangesTotal.Inc()
+	metrics.EstimatedCostUSD.Set(float64(level) * 0.001)
 
-	log.Printf("🔧 Engine: level=%d%%, workers=%d/%d CPUs", level, desiredWorkers, maxCPUs)
+	log.Printf("Engine: level=%d%%, workers=%d/%d CPUs", level, desiredWorkers, maxCPUs)
 }
 
 // cpuWorker é uma goroutine que consome CPU até receber sinal de parada
