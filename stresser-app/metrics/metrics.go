@@ -1,6 +1,9 @@
 package metrics
 
 import (
+	"net/http"
+	"time"
+
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 )
@@ -64,3 +67,15 @@ var EstimatedCostUSD = promauto.NewGauge(prometheus.GaugeOpts{
 	Name: "estimated_cost_usd",
 	Help: "Estimated cost in USD (simulated)",
 })
+
+
+func MetricsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		next.ServeHTTP(w, r)
+
+		duration := time.Since(start).Seconds()
+		HTTPRequestDuration.WithLabelValues(r.URL.Path, r.Method).Observe(duration)
+	})
+}

@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/marcoarc01/aws-stresser-observability/stresser-app/handlers"
+	"github.com/marcoarc01/aws-stresser-observability/stresser-app/metrics"
 	"github.com/marcoarc01/aws-stresser-observability/stresser-app/stress"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -40,8 +41,7 @@ func main() {
 	log.Printf("Stresser App rodando em http://localhost%s", addr)
 	log.Printf("Metricas em http://localhost%s/metrics", addr)
 
-	// Inicia o servidor HTTP
-	if err := http.ListenAndServe(addr, mux); err != nil {
+	if err := http.ListenAndServe(addr, metrics.MetricsMiddleware(mux)); err != nil {
 		log.Fatalf("Erro ao iniciar servidor: %v", err)
 	}
 }
