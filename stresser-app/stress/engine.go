@@ -10,10 +10,10 @@ import (
 
 // Engine controla o nível de stress da aplicação
 type Engine struct {
-	mu      sync.Mutex     // Protege acesso concorrente
-	level   int            // Nível de stress 0-100
-	workers int            // Quantidade de goroutines ativas
-	cancel  []chan struct{} // Canais para parar goroutines
+	mu      sync.Mutex
+	level   int
+	workers int
+	cancel  []chan struct{}
 }
 
 // NewEngine cria um novo motor de stress
@@ -53,7 +53,6 @@ func (e *Engine) SetLevel(level int) {
 	e.cancel = make([]chan struct{}, 0)
 
 	// Calcula quantos workers criar baseado no level
-	// Usa o número de CPUs disponíveis como referência
 	maxCPUs := runtime.NumCPU()
 	desiredWorkers := (level * maxCPUs) / 100
 
