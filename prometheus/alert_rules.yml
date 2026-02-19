@@ -1,0 +1,12 @@
+groups:
+  - name: stress_alerts
+    rules:
+      - alert: stress-acima-do-limite
+        expr: stress_level > 80
+        for: 10s
+        keep_firing_for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Carga alta detectada no Stresser App"
+          description: "O nível de stress está em {{ $value }}% por muito tempo."
