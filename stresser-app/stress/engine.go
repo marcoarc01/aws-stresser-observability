@@ -72,7 +72,8 @@ func (e *Engine) SetLevel(level int) {
 	metrics.StressChangesTotal.Inc()
 	metrics.EstimatedCostUSD.Set(float64(level) * 0.001)
 
-	log.Printf("Engine: level=%d%%, workers=%d/%d CPUs", level, desiredWorkers, maxCPUs)
+	log.Printf(`{"level":"info","component":"engine","stress":%d,"workers":%d,"msg":"stress updated"}`,
+    level, desiredWorkers)
 }
 
 // cpuWorker é uma goroutine que consome CPU até receber sinal de parada

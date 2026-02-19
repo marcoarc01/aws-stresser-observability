@@ -1,7 +1,6 @@
 services:
   stresser-app:
     build: ./stresser-app
-    container_name: stresser-app
     ports:
       - "${STRESSER_PORT}:8080"
     environment:
@@ -15,7 +14,6 @@ services:
 
   mailhog:
     image: mailhog/mailhog
-    container_name: mailhog
     ports:
       - "1025:1025"
       - "8025:8025"
@@ -28,7 +26,6 @@ services:
 
   prometheus:
     image: prom/prometheus
-    container_name: prometheus
     ports:
       - "9090:9090"
     volumes:
@@ -39,7 +36,6 @@ services:
 
   grafana:
     image: grafana/grafana
-    container_name: grafana
     ports:
       - "3000:3000"
     environment:
@@ -53,6 +49,26 @@ services:
     restart: unless-stopped
     depends_on:
       - prometheus
+
+
+
+  loki:
+    image: grafana/loki:2.9.3
+    ports:
+      - "3100:3100"
+    volumes:
+      - ./loki/loki-config.yml:/etc/loki/local-config.yml
+    command: -config.file=/etc/loki/local-config.yml
+
+  promtail:
+    image: grafana/promtail:2.9.3
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./promtail/promtail.yml:/etc/promtail/promtail.yml
+    command: -config.file=/etc/promtail/promtail.yml
+    depends_on:
+      - loki
 
 volumes:
   grafana-data:
