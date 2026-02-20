@@ -1,12 +1,17 @@
 package stress
 
 import (
+	"context"
 	"log"
 	"runtime"
 	"sync"
 
 	"github.com/marcoarc01/aws-stresser-observability/stresser-app/metrics"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
 )
+
+var tracer = otel.Tracer("stresser-app")
 
 // Engine controla o nível de stress da aplicação
 type Engine struct {
@@ -41,10 +46,20 @@ func (e *Engine) GetWorkers() int {
 
 // SetLevel define o nível de stress e ajusta os workers
 func (e *Engine) SetLevel(level int) {
+	ctx := context.Background()
+	_, span := tracer.Start(ctx, "engine.SetLevel")
+	defer span.End()
+
 	e.mu.Lock()
 	defer e.mu.Unlock()
 
+	oldLevel := e.level
 	e.level = level
+
+	span.SetAttributes(
+		attribute.Int("stress.level.old", oldLevel),
+		attribute.Int("stress.level.new", level),
+	)
 
 	// Para todos os workers atuais
 	for _, ch := range e.cancel {
@@ -65,14 +80,19 @@ func (e *Engine) SetLevel(level int) {
 
 	e.workers = desiredWorkers
 
+	span.SetAttributes(
+		attribute.Int("stress.workers.count", desiredWorkers),
+		attribute.Int("stress.cpu.max", maxCPUs),
+	)
+
 	// MÉTRICAS — atualiza Prometheus
 	metrics.StressLevel.Set(float64(level))
 	metrics.StressCPUWorkers.Set(float64(desiredWorkers))
 	metrics.StressChangesTotal.Inc()
 	metrics.EstimatedCostUSD.Set(float64(level) * 0.001)
 
-	log.Printf(`{"level":"info","component":"engine","stress":%d,"workers":%d,"msg":"stress updated"}`,
-    level, desiredWorkers)
+	log.Printf(`{"level":"info","component":"engine","stress":%d,"workers":%d,"old_level":%d,"msg":"stress updated"}`,
+		level, desiredWorkers, oldLevel)
 }
 
 // cpuWorker é uma goroutine que consome CPU até receber sinal de parada

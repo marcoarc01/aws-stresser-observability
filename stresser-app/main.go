@@ -9,10 +9,16 @@ import (
 	"github.com/marcoarc01/aws-stresser-observability/stresser-app/handlers"
 	"github.com/marcoarc01/aws-stresser-observability/stresser-app/metrics"
 	"github.com/marcoarc01/aws-stresser-observability/stresser-app/stress"
+	"github.com/marcoarc01/aws-stresser-observability/stresser-app/tracing"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 func main() {
+	// Inicializa OpenTelemetry
+	shutdown := tracing.InitTracer()
+	defer shutdown()
+
 	// Inicializa o motor de stress
 	engine := stress.NewEngine()
 
@@ -41,7 +47,10 @@ func main() {
 	log.Printf("Stresser App rodando em http://localhost%s", addr)
 	log.Printf("Metricas em http://localhost%s/metrics", addr)
 
-	if err := http.ListenAndServe(addr, metrics.MetricsMiddleware(mux)); err != nil {
+	// Aplica middlewares: OTel (tracing) + Metrics
+	handler := otelhttp.NewHandler(metrics.MetricsMiddleware(mux), "stresser-app")
+
+	if err := http.ListenAndServe(addr, handler); err != nil {
 		log.Fatalf("Erro ao iniciar servidor: %v", err)
 	}
 }

@@ -5,12 +5,16 @@ services:
       - "${STRESSER_PORT}:8080"
     environment:
       - STRESSER_PORT=8080
+      - OTEL_EXPORTER_OTLP_ENDPOINT=otel-collector:4317
+      - OTEL_SERVICE_NAME=stresser-app
     restart: unless-stopped
     deploy:
       resources:
         limits:
           cpus: "2.0"
           memory: "512M"
+    depends_on:
+      - otel-collector
 
   mailhog:
     image: mailhog/mailhog
@@ -83,7 +87,32 @@ services:
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
 
+  tempo:
+    image: grafana/tempo:2.3.1
+    ports:
+      - "3200:3200"
+    volumes:
+      - ./tempo/tempo-config.yml:/etc/tempo.yml
+      - tempo-data:/tmp/tempo
+    command: -config.file=/etc/tempo.yml
+    restart: unless-stopped
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.91.0
+    ports:
+      - "4317:4317"
+      - "4318:4318"
+      - "8888:8888"
+      - "8889:8889"
+    volumes:
+      - ./otel-collector/otel-collector-config.yml:/etc/otel-collector-config.yml
+    command: --config=/etc/otel-collector-config.yml
+    restart: unless-stopped
+    depends_on:
+      - tempo
+
 volumes:
   grafana-data:
   prometheus-data:
   loki-data:
+  tempo-data:

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/marcoarc01/aws-stresser-observability/stresser-app/stress"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // StateResponse é o JSON retornado pelo GET /api/state
@@ -14,14 +15,25 @@ type StateResponse struct {
 }
 
 // StateHandler retorna o estado atual do stresser
-// GET /api/state → { "stress_level": 50, "cpu_workers": 4 }
 func StateHandler(engine *stress.Engine) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+		_, span := tracer.Start(ctx, "GET /api/state")
+		defer span.End()
+
+		level := engine.GetLevel()
+		workers := engine.GetWorkers()
+
+		span.SetAttributes(
+			attribute.Int("stress.level", level),
+			attribute.Int("stress.workers", workers),
+		)
+
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(StateResponse{
-			StressLevel: engine.GetLevel(),
-			CPUWorkers:  engine.GetWorkers(),
+			StressLevel: level,
+			CPUWorkers:  workers,
 		})
 	}
 }
