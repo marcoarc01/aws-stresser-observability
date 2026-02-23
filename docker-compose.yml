@@ -64,8 +64,10 @@ services:
       - "3100:3100"
     volumes:
       - ./loki/loki-config.yml:/etc/loki/local-config.yml
-      - loki-data:/loki
     command: -config.file=/etc/loki/local-config.yml
+    depends_on:
+      s3-init:
+        condition: service_completed_successfully
 
   promtail:
     image: grafana/promtail:2.9.3
@@ -93,9 +95,11 @@ services:
       - "3200:3200"
     volumes:
       - ./tempo/tempo-config.yml:/etc/tempo.yml
-      - tempo-data:/tmp/tempo
     command: -config.file=/etc/tempo.yml
     restart: unless-stopped
+    depends_on:
+      s3-init:
+        condition: service_completed_successfully
 
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.91.0
@@ -111,8 +115,49 @@ services:
     depends_on:
       - tempo
 
+  localstack:
+    image: localstack/localstack:3.0
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3
+      - DEBUG=0
+      - PERSISTENCE=1
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+      - DOCKER_HOST=unix:///var/run/docker.sock
+    volumes:
+      - localstack-data:/var/lib/localstack
+      - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  s3-init:
+    image: amazon/aws-cli
+    depends_on:
+      localstack:
+        condition: service_healthy
+    environment:
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=us-east-1
+    entrypoint: /bin/sh
+    command: >
+      -c "
+      sleep 5 &&
+      aws --endpoint-url=http://localstack:4566 s3 mb s3://loki-chunks &&
+      aws --endpoint-url=http://localstack:4566 s3 mb s3://tempo-traces &&
+      aws --endpoint-url=http://localstack:4566 s3 mb s3://stresser-logs &&
+      aws --endpoint-url=http://localstack:4566 s3 ls
+      "
+    restart: on-failure
+
 volumes:
   grafana-data:
   prometheus-data:
-  loki-data:
-  tempo-data:
+  localstack-data:

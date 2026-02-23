@@ -18,9 +18,15 @@ compactor:
 
 storage:
   trace:
-    backend: local
-    local:
-      path: /tmp/tempo/blocks
+    backend: s3
+    s3:
+      bucket: tempo-traces
+      endpoint: localstack:4566
+      region: us-east-1
+      access_key: test
+      secret_key: test
+      insecure: true
+      forcepathstyle: true
     wal:
       path: /tmp/tempo/wal
 
