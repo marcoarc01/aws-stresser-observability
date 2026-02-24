@@ -1,9 +1,9 @@
 apiVersion: 1
 
 providers:
-  - name: 'Monitoramento stress app - Stress & Logs'
+  - name: 'Monitoramento stress app'
     orgId: 1
-    folder: 'App stress'
+    folder: 'Stresser App'
     type: file
     disableDeletion: false
     editable: true
